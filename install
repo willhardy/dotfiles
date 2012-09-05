@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+
+import os
+import sys
+from datetime import datetime
+import logging
+import shutil
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+IGNORE_FILES = set(['.git', 'install', '.dotfiles'])
+
+
+def install(src_dir, target_dir, backup_dir):
+    for path in os.listdir(src_dir):
+        if path.startswith("."):
+            src_file = os.path.join(src_dir, path)
+            install_file(src_file, target_dir, backup_dir)
+
+
+def uninstall():
+    pass
+
+
+def install_file(src_file, target_dir, backup_dir):
+    basename = os.path.basename(src_file)
+    target_file = os.path.join(target_dir, basename)
+    backup_file = os.path.join(backup_dir, basename)
+
+    if basename in IGNORE_FILES:
+        return
+
+    if os.path.exists(target_file):
+        create_backup_directory(backup_dir)
+        shutil.copyfile(target_file, backup_file)
+        logger.debug("Backed up existing {0}".format(basename))
+
+    # TODO: use a symbolic link, make the command atomic
+    shutil.copyfile(src_file, target_file)
+    logger.info("Installed {0}".format(basename))
+
+
+def create_backup_directory(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+        logger.info("Created backup directory {0}".format(path))
+
+
+def setup_console_log(level):
+    hdlr = logging.StreamHandler()
+    hdlr.setFormatter(logging.Formatter('%(message)s'))
+    hdlr.setLevel(level)
+    # Remove any existing handlers
+    logger.handlers = [] 
+    logger.addHandler(hdlr) 
+
+
+if __name__ == "__main__":
+    setup_console_log(level=logging.DEBUG)
+    # XXX allow override
+    HOME = os.path.expanduser("~")
+    # XXX allow override
+    BACKUP_DIR = os.path.join(HOME, ".dotfiles", datetime.now().isoformat("_"))
+    # XXX allow override
+    SRC_DIR = os.path.dirname(__file__)
+
+    install(SRC_DIR, HOME, BACKUP_DIR)
