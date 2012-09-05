@@ -1,0 +1,5 @@
+[user]
+	name = Will Hardy
+	email = will@willhardy.com.au
+[core]
+	excludesfile = /Users/will/.gitignore
