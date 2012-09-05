@@ -4,26 +4,40 @@ import os
 import sys
 from datetime import datetime
 import logging
+import tempfile
 import shutil
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-IGNORE_FILES = set(['.git', 'install', '.dotfiles'])
+IGNORE_FILES = set(['.git', 'install', '.dotfiles', 'private'])
 
 
 def install(src_dir, target_dir, backup_dir):
+    TMP_DIR = tempfile.mkdtemp()
+
     for path in os.listdir(src_dir):
         if path.startswith("."):
             src_file = os.path.join(src_dir, path)
-            install_file(src_file, target_dir, backup_dir)
+            install_file(src_file, target_dir, backup_dir, tmp_dir=TMP_DIR)
+
+    os.rmdir(TMP_DIR)
 
 
 def uninstall():
-    pass
+    """ 
+        Find all dot files that are symbolic links to this directory and look
+        for the latest backup in ~/.dotfiles/, replacing the symbolic links with the old files.
+    """
+    # TODO
 
 
-def install_file(src_file, target_dir, backup_dir):
+def install_file(src_file, target_dir, backup_dir, tmp_dir=None):
+    if tmp_dir is None:
+        TMP_DIR = tempfile.mkdtemp()
+    else:
+        TMP_DIR = tmp_dir
+
     basename = os.path.basename(src_file)
     target_file = os.path.join(target_dir, basename)
     backup_file = os.path.join(backup_dir, basename)
@@ -31,14 +45,20 @@ def install_file(src_file, target_dir, backup_dir):
     if basename in IGNORE_FILES:
         return
 
-    if os.path.exists(target_file):
+    if os.path.exists(target_file) and not os.path.islink(target_file):
         create_backup_directory(backup_dir)
         shutil.copyfile(target_file, backup_file)
         logger.debug("Backed up existing {0}".format(basename))
 
-    # TODO: use a symbolic link, make the command atomic
-    shutil.copyfile(src_file, target_file)
+    # TODO: Add an option to copy instead of linking
+    # Create a symlink and install it atomically
+    tmp_link = os.path.join(TMP_DIR, basename)
+    os.symlink(os.path.abspath(src_file), tmp_link)
+    os.rename(tmp_link, target_file)
     logger.info("Installed {0}".format(basename))
+
+    if tmp_dir is None:
+        os.rmdir(TMP_DIR)
 
 
 def create_backup_directory(path):
@@ -61,7 +81,7 @@ if __name__ == "__main__":
     # XXX allow override
     HOME = os.path.expanduser("~")
     # XXX allow override
-    BACKUP_DIR = os.path.join(HOME, ".dotfiles", datetime.now().isoformat("_"))
+    BACKUP_DIR = os.path.join(HOME, ".dotfiles", datetime.now().strftime("%Y-%m-%d_%H%M%S"))
     # XXX allow override
     SRC_DIR = os.path.dirname(__file__)
 
