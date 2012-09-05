@@ -76,6 +76,29 @@ def setup_console_log(level):
     logger.addHandler(hdlr) 
 
 
+def install_private_files(hoststring, filename):
+    with open(filename) as f:
+        for private_file in f:
+            if not os.path.exists(private_file):
+                source = "{0}:{1}".format(hoststring, private_file)
+                call("scp", source, private_file)
+
+
+def call(*args, **kwargs):
+    return_stdout = kwargs.pop("return_stdout", False)
+    env = kwargs.pop("env", None)
+    stderr = None if return_stdout else subprocess.STDOUT
+
+    # Run the command and collect standard output
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=stderr, env=env)
+    stdout, stderr = p.communicate()
+    if return_stdout:
+        return stdout
+    else:
+        logger.debug(stdout)
+
+
+
 if __name__ == "__main__":
     setup_console_log(level=logging.DEBUG)
     # XXX allow override
@@ -86,3 +109,5 @@ if __name__ == "__main__":
     SRC_DIR = os.path.dirname(__file__)
 
     install(SRC_DIR, HOME, BACKUP_DIR)
+    host = 'will@wh.local'
+    install_private_files(host, filename="private")

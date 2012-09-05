@@ -1,5 +1,5 @@
-.netrc
-.gondor
-.ssh/id_rsa
-.ssh/id_rsa.pub
-.ssh/authorized_keys
+~/.ssh/id_rsa
+~/.netrc
+~/.gondor
+~/.ssh/id_rsa.pub
+~/.ssh/authorized_keys
