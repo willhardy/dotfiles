@@ -6,6 +6,7 @@ from datetime import datetime
 import logging
 import tempfile
 import shutil
+import subprocess
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
